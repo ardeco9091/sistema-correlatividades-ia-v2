@@ -102,3 +102,64 @@ export function getCfBadgeStyle(cf, isLight = false) {
       return "bg-slate-500/15 text-slate-300 border-slate-500/30";
   }
 }
+// Devuelve qué materias futuras exigen tener esta materia APROBADA para poder rendirse
+export function getAprobadaDependents(sourceSubject) {
+  return subjectsData.filter(
+    (future) => future.id !== sourceSubject.id && isRequiredAsAprobada(future, sourceSubject.id)
+  );
+}
+
+// Calcula el orden ideal para rendir exámenes finales según las materias Regulares del alumno
+export function getFinalExamRecommendations(studentProgress) {
+  const regularSubjects = subjectsData.filter(
+    (s) => studentProgress[s.id] === "regular"
+  );
+
+  const analyzed = regularSubjects.map((subject) => {
+    // 1. Verificar qué requisitos de aprobación le faltan para poder rendir esta materia
+    let missingToPass = [];
+    if (Array.isArray(subject.aprReq)) {
+      missingToPass = subject.aprReq
+        .filter((reqId) => studentProgress[reqId] !== "aprobada")
+        .map((reqId) => getSubjectById(reqId))
+        .filter(Boolean);
+    } else if (subject.aprReq === "1er. Año") {
+      missingToPass = subjectsData.filter(
+        (s) => s.year === 1 && studentProgress[s.id] !== "aprobada"
+      );
+    } else if (subject.aprReq === "2do. Año") {
+      missingToPass = subjectsData.filter(
+        (s) => s.year <= 2 && studentProgress[s.id] !== "aprobada"
+      );
+    }
+
+    const canRenderNow = missingToPass.length === 0;
+
+    // 2. Calcular cuántas materias futuras exigen esta materia aprobada
+    const aprDependents = getAprobadaDependents(subject);
+
+    // 3. Calcular cuántas de las otras materias que el alumno YA tiene regulares se destrabarían para rendir si aprueba esta
+    const unlocksOtherRegulares = regularSubjects.filter(
+      (otherReg) =>
+        otherReg.id !== subject.id && isRequiredAsAprobada(otherReg, subject.id)
+    );
+
+    // Puntaje de prioridad estratégica
+    const priorityScore =
+      (canRenderNow ? 1000 : 0) +
+      unlocksOtherRegulares.length * 150 +
+      aprDependents.length * 30 +
+      (4 - subject.year) * 20;
+
+    return {
+      ...subject,
+      canRenderNow,
+      missingToPass,
+      aprDependents,
+      unlocksOtherRegulares,
+      priorityScore,
+    };
+  });
+
+  return analyzed.sort((a, b) => b.priorityScore - a.priorityScore);
+}

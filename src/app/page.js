@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   LayoutGrid,
@@ -8,9 +8,10 @@ import {
   BarChart3,
   X,
   Flame,
+  Trophy,
+  AlertCircle,
   CheckCircle2,
-  Clock,
-  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { subjectsData, PLAN_METADATA } from "@/data/subjects";
 import {
@@ -20,6 +21,7 @@ import {
   evaluateStudentAvailability,
   getCfBadgeStyle,
   getUnlockedCount,
+  getFinalExamRecommendations,
 } from "@/utils/correlativas";
 import Header from "@/components/Header";
 import SubjectInspector from "@/components/SubjectInspector";
@@ -74,7 +76,6 @@ export default function HomePage() {
     }
   };
 
-  // Materia activa para resaltar (prioriza la fijada con clic, o muestra preview al pasar el mouse)
   const activeSubjectId = selectedId ?? hoveredId;
   const activeSubject = getSubjectById(activeSubjectId);
 
@@ -95,7 +96,6 @@ export default function HomePage() {
     return matchYear && matchCf && matchSearch;
   });
 
-  // Clases con bordes neón / glow como en la primera versión pero potenciadas
   const getRelationStyles = (rel) => {
     if (rel.type === "selected") {
       return isLight
@@ -122,7 +122,9 @@ export default function HomePage() {
       : "border-l-4 border-l-transparent border-slate-800/90 bg-slate-900/80 hover:border-slate-700 hover:bg-slate-800/70";
   };
 
-  // Datos para la Vista 3: Analítica y Ruta Crítica
+  // Analítica del Plan y Recomendaciones de Exámenes Finales
+  const examRecommendations = getFinalExamRecommendations(studentProgress);
+
   const camposFormativos = [
     "Específica",
     "Fundamento",
@@ -155,7 +157,7 @@ export default function HomePage() {
         toggleTheme={toggleTheme}
       />
 
-      {/* Barra Sticky de Referencias y Selector de las 3 Vistas */}
+      {/* Barra Sticky de Referencias y Selector de Vistas */}
       <div
         className={`sticky top-0 z-30 border-b backdrop-blur-md px-4 py-3 sm:px-8 transition-colors ${
           isLight
@@ -183,7 +185,6 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Conmutador de 3 Vistas */}
           <div
             className={`flex items-center gap-1 rounded-xl border p-1 ${
               isLight ? "border-slate-200 bg-slate-100" : "border-slate-800 bg-slate-950"
@@ -197,7 +198,7 @@ export default function HomePage() {
                   : "text-slate-400 hover:text-cyan-400"
               }`}
             >
-              <LayoutGrid className="h-3.5 w-3.5"/>
+              <LayoutGrid className="h-3.5 w-3.5" />
               Mapa Pro
             </button>
             <button
@@ -208,7 +209,7 @@ export default function HomePage() {
                   : "text-slate-400 hover:text-cyan-400"
               }`}
             >
-              <TableIcon className="h-3.5 w-3.5"/>
+              <TableIcon className="h-3.5 w-3.5" />
               Tabla Ejecutiva
             </button>
             <button
@@ -219,8 +220,13 @@ export default function HomePage() {
                   : "text-slate-400 hover:text-cyan-400"
               }`}
             >
-              <BarChart3 className="h-3.5 w-3.5"/>
-              Ruta Crítica & KPIs
+              <BarChart3 className="h-3.5 w-3.5" />
+              Ruta Crítica & Finales
+              {examRecommendations.length > 0 && (
+                <span className="ml-1 rounded-full bg-amber-400 px-1.5 py-0.2 text-[10px] font-extrabold text-slate-950">
+                  {examRecommendations.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -229,7 +235,129 @@ export default function HomePage() {
       {/* Contenedor Principal */}
       <main className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[1fr_350px]">
         <section className="space-y-5">
-          {/* Barra de Búsqueda y Filtros Combinados */}
+          {/* Recomendador Inteligente de Exámenes Finales (Visible si tiene Regulares o en la pestaña Ruta Crítica) */}
+          {(examRecommendations.length > 0 || viewMode === "analytics") && (
+            <div
+              className={`rounded-2xl border p-4 sm:p-5 transition-all ${
+                isLight
+                  ? "border-amber-300 bg-gradient-to-br from-amber-50/90 via-white to-emerald-50/40 shadow-sm"
+                  : "border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-slate-900/95 to-emerald-500/5 shadow-xl"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-amber-400">
+                  <Trophy className="h-5 w-5 text-amber-400" />
+                  <span>Orden Ideal Recomendado para Rendir tus Exámenes Finales</span>
+                </div>
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
+                  {examRecommendations.filter((r) => r.canRenderNow).length} listas para rendir hoy
+                </span>
+              </div>
+
+              <p className="mt-1 text-xs text-slate-400">
+                Priorizado automáticamente según qué finales destraban otras materias regulares tuyas y cuáles abren más correlativas del plan.
+              </p>
+
+              {examRecommendations.length === 0 ? (
+                <div
+                  className={`mt-3 rounded-xl border border-dashed p-4 text-center text-xs ${
+                    isLight
+                      ? "border-slate-300 bg-white/70 text-slate-600"
+                      : "border-slate-800 bg-slate-950/50 text-slate-400"
+                  }`}
+                >
+                  Marcá tus materias en estado <strong>Regular (botón R)</strong> en el tablero o tabla para que el sistema calcule en qué orden te conviene preparar y rendir tus finales.
+                </div>
+              ) : (
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {examRecommendations.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      onClick={() => toggleSelectSubject(item.id, true)}
+                      className={`relative flex flex-col justify-between rounded-xl border p-3.5 transition cursor-pointer ${
+                        item.canRenderNow
+                          ? isLight
+                            ? "border-emerald-300 bg-white hover:border-emerald-500 shadow-sm"
+                            : "border-emerald-500/40 bg-slate-950/85 hover:border-emerald-400"
+                          : isLight
+                          ? "border-red-200 bg-slate-50/80 opacity-85"
+                          : "border-red-500/30 bg-slate-950/50 opacity-80"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[11px] font-extrabold ${
+                              item.canRenderNow
+                                ? "bg-emerald-500 text-slate-950"
+                                : "bg-red-500/20 text-red-400"
+                            }`}
+                          >
+                            {item.canRenderNow
+                              ? `PRIORIDAD #${idx + 1} • LISTA P/ RENDIR`
+                              : "BLOQUEADA P/ RENDIR"}
+                          </span>
+                          <span className="font-mono text-xs font-bold text-slate-400">
+                            Mat. #{formatPadId(item.id)} ({item.year}° Año)
+                          </span>
+                        </div>
+
+                        <h4 className="mt-2 text-sm font-extrabold">{item.name}</h4>
+
+                        {/* Motivo estratégico de la prioridad */}
+                        <div className="mt-2 space-y-1 text-[11px]">
+                          {item.canRenderNow ? (
+                            <>
+                              {item.unlocksOtherRegulares.length > 0 && (
+                                <p className="font-bold text-amber-400">
+                                  ⚡ ¡Clave! Aprobarla te habilita a rendir tu regular:{" "}
+                                  {item.unlocksOtherRegulares.map((u) => u.name).join(", ")}
+                                </p>
+                              )}
+                              <p className="text-slate-400">
+                                🚀 Es requisito de aprobación de{" "}
+                                <strong className="text-emerald-400">
+                                  {item.aprDependents.length} materias
+                                </strong>{" "}
+                                posteriores.
+                              </p>
+                            </>
+                          ) : (
+                            <p className="flex items-start gap-1.5 font-semibold text-red-400">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                              <span>
+                                Para poder rendir este final primero debés aprobar:{" "}
+                                {item.missingToPass
+                                  .map((m) => `[${formatPadId(m.id)}] ${m.name}`)
+                                  .join(", ")}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between border-t border-slate-800/40 pt-2">
+                        <span className="text-[10px] text-slate-400">{item.accred}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(item.id, "aprobada");
+                          }}
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-extrabold text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 transition cursor-pointer"
+                        >
+                          <CheckCircle2 className="h-3 w-3" />
+                          Marcar como Aprobada
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Barra de Búsqueda y Filtros */}
           <div
             className={`rounded-2xl border p-4 space-y-3.5 transition-colors ${
               isLight
@@ -239,7 +367,7 @@ export default function HomePage() {
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="relative flex-1 min-w-[240px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"/>
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -256,7 +384,7 @@ export default function HomePage() {
                     onClick={() => setSearchQuery("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-400 cursor-pointer"
                   >
-                    <X className="h-4 w-4"/>
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -318,9 +446,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ==========================================
-              VISTA 1: MAPA CURRICULAR PRO (KANBAN RICA)
-             ========================================== */}
+          {/* VISTA 1: MAPA CURRICULAR PRO */}
           {viewMode === "board" && (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
               {[1, 2, 3].map((year) => {
@@ -368,7 +494,6 @@ export default function HomePage() {
                               rel
                             )}`}
                           >
-                            {/* Top Row: ID + Impacto + Campo */}
                             <div className="flex items-center justify-between gap-1.5">
                               <div className="flex items-center gap-1.5">
                                 <span className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-xs font-extrabold text-cyan-400">
@@ -383,7 +508,7 @@ export default function HomePage() {
                                         : "bg-slate-800/60 text-slate-400"
                                     }`}
                                   >
-                                    {unlocksCount >= 4 && <Flame className="h-3 w-3"/>}
+                                    {unlocksCount >= 4 && <Flame className="h-3 w-3" />}
                                     Destraba {unlocksCount}
                                   </span>
                                 )}
@@ -399,12 +524,10 @@ export default function HomePage() {
                               </span>
                             </div>
 
-                            {/* Nombre de la Materia */}
                             <h3 className="mt-2 text-sm font-extrabold leading-snug group-hover:text-cyan-400 transition-colors">
                               {s.name}
                             </h3>
 
-                            {/* Píldoras de Correlativas Visibles de un Vistazo */}
                             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px]">
                               <div className="flex items-center gap-1 flex-wrap">
                                 <span className="font-semibold text-slate-400">📌 Reg:</span>
@@ -455,39 +578,11 @@ export default function HomePage() {
                               </div>
                             </div>
 
-                            {/* Badges de Relación Activa */}
-                            {(rel.reqApr || rel.reqReg || rel.unlocks || rel.type === "selected") && (
-                              <div className="mt-2.5 flex flex-wrap gap-1">
-                                {rel.type === "selected" && (
-                                  <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-extrabold uppercase text-white">
-                                    Materia Activa
-                                  </span>
-                                )}
-                                {rel.reqApr && (
-                                  <span className="rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-extrabold uppercase text-white">
-                                    🔒 Pide Aprobada
-                                  </span>
-                                )}
-                                {rel.reqReg && (
-                                  <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold uppercase text-slate-950">
-                                    📌 Pide Regular
-                                  </span>
-                                )}
-                                {rel.unlocks && (
-                                  <span className="rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-extrabold uppercase text-slate-950">
-                                    🚀 Se Destraba
-                                  </span>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Footer de Tarjeta: Horas + Botones de Estado Rápido */}
                             <div className="mt-3 flex items-center justify-between border-t border-slate-800/50 pt-2.5 text-[11px]">
                               <span className="font-mono font-semibold text-slate-400">
                                 {s.hs} hs • {s.accred === "Promocional" ? "Promocional" : "Prom./Final"}
                               </span>
 
-                              {/* Píldoras de Estado Académico en 1 Clic */}
                               <div
                                 className="flex items-center gap-1"
                                 onClick={(e) => e.stopPropagation()}
@@ -512,18 +607,6 @@ export default function HomePage() {
                                 ))}
                               </div>
                             </div>
-
-                            {simulatorMode && currentStatus === "pendiente" && (
-                              <div className="mt-2 text-[10px] font-bold">
-                                {avail.canPass ? (
-                                  <span className="text-emerald-400">✓ Habilitada para Cursar y Rendir</span>
-                                ) : avail.canTake ? (
-                                  <span className="text-amber-400">✓ Habilitada para Cursar</span>
-                                ) : (
-                                  <span className="text-slate-500">🔒 Requiere correlativas previas</span>
-                                )}
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -534,9 +617,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* ==========================================
-              VISTA 2: TABLA EJECUTIVA INTERACTIVA
-             ========================================== */}
+          {/* VISTA 2: TABLA EJECUTIVA */}
           {viewMode === "table" && (
             <div
               className={`overflow-x-auto rounded-2xl border shadow-2xl ${
@@ -569,7 +650,7 @@ export default function HomePage() {
                     const totalYearHs = yearSubjects.reduce((acc, s) => acc + s.hs, 0);
 
                     return (
-                      <React.Fragment key="{year}">
+                      <React.Fragment key={year}>
                         <tr
                           className={
                             isLight
@@ -589,7 +670,6 @@ export default function HomePage() {
                         {yearSubjects.map((s) => {
                           const rel = getSubjectRelation(activeSubject, s);
                           const currentStatus = studentProgress[s.id] || "pendiente";
-                          const unlocksCount = getUnlockedCount(s);
 
                           return (
                             <tr
@@ -604,34 +684,7 @@ export default function HomePage() {
                               <td className="py-3.5 px-3 font-mono font-extrabold text-cyan-500">
                                 {formatPadId(s.id)}
                               </td>
-                              <td className="py-3.5 px-3 font-bold">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span>{s.name}</span>
-                                  {unlocksCount >= 4 && (
-                                    <span
-                                      title={`Materia Troncal: destraba ${unlocksCount} materias`}
-                                      className="inline-flex items-center gap-0.5 rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-bold text-orange-400"
-                                    >
-                                      <Flame className="h-3 w-3"/> Llave ({unlocksCount})
-                                    </span>
-                                  )}
-                                  {rel.reqApr && (
-                                    <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-white">
-                                      🔒 Req. Aprobada
-                                    </span>
-                                  )}
-                                  {rel.reqReg && (
-                                    <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-slate-950">
-                                      📌 Req. Regular
-                                    </span>
-                                  )}
-                                  {rel.unlocks && (
-                                    <span className="rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-slate-950">
-                                      🚀 Habilita
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
+                              <td className="py-3.5 px-3 font-bold">{s.name}</td>
                               <td className="py-3.5 px-3">
                                 <span
                                   className={`rounded border px-2 py-0.5 text-[10px] font-bold ${getCfBadgeStyle(
@@ -646,64 +699,20 @@ export default function HomePage() {
                                 {s.hs} hs
                               </td>
                               <td className="py-3.5 px-3">
-                                {Array.isArray(s.regReq) && s.regReq.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {s.regReq.map((id) => (
-                                      <button
-                                        key={id}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleSelectSubject(id, true);
-                                        }}
-                                        title={getSubjectById(id)?.name}
-                                        className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-400 hover:bg-amber-500 hover:text-slate-950 cursor-pointer"
-                                      >
-                                        {formatPadId(id)}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-slate-500">—</span>
-                                )}
+                                {Array.isArray(s.regReq) && s.regReq.length > 0
+                                  ? s.regReq.map((id) => formatPadId(id)).join(" - ")
+                                  : "—"}
                               </td>
                               <td className="py-3.5 px-3">
-                                {Array.isArray(s.aprReq) && s.aprReq.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {s.aprReq.map((id) => (
-                                      <button
-                                        key={id}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleSelectSubject(id, true);
-                                        }}
-                                        title={getSubjectById(id)?.name}
-                                        className="rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 font-mono text-[11px] font-bold text-red-400 hover:bg-red-500 hover:text-white cursor-pointer"
-                                      >
-                                        {formatPadId(id)}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : typeof s.aprReq === "string" ? (
-                                  <span className="rounded bg-red-500/20 px-2 py-0.5 text-[11px] font-bold text-red-400">
-                                    {s.aprReq}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-500">—</span>
-                                )}
+                                {Array.isArray(s.aprReq) && s.aprReq.length > 0
+                                  ? s.aprReq.map((id) => formatPadId(id)).join(" - ")
+                                  : s.aprReq || "—"}
                               </td>
                               <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
                                 <select
                                   value={currentStatus}
                                   onChange={(e) => handleStatusChange(s.id, e.target.value)}
-                                  className={`rounded-lg border px-2 py-1 text-xs font-bold cursor-pointer ${
-                                    currentStatus === "aprobada"
-                                      ? "border-emerald-500 bg-emerald-500/20 text-emerald-400"
-                                      : currentStatus === "regular"
-                                      ? "border-amber-500 bg-amber-500/20 text-amber-400"
-                                      : isLight
-                                      ? "border-slate-300 bg-slate-50 text-slate-700"
-                                      : "border-slate-700 bg-slate-950 text-slate-300"
-                                  }`}
+                                  className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs font-bold text-white cursor-pointer"
                                 >
                                   <option value="pendiente">Pendiente</option>
                                   <option value="regular">Regular</option>
@@ -721,32 +730,23 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* ==========================================
-              VISTA 3: ANALÍTICA Y RUTA CRÍTICA
-             ========================================== */}
+          {/* VISTA 3: ANALÍTICA Y RUTA CRÍTICA */}
           {viewMode === "analytics" && (
             <div className="space-y-6">
-              {/* Top 6 Materias Llave / Cuellos de Botella */}
               <div
                 className={`rounded-2xl border p-5 ${
                   isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/80"
                 }`}
               >
                 <div className="flex items-center gap-2 text-orange-400 font-extrabold text-sm uppercase tracking-wider">
-                  <Flame className="h-5 w-5"/>
+                  <Flame className="h-5 w-5" />
                   Ranking de Materias Llave (Ruta Crítica del Plan)
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
-                  Priorizá estas asignaturas: son las que más espacios curriculares postergan si no se regularizan o aprueban a tiempo.
-                </p>
-
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                   {topKeystoneSubjects.map((s, idx) => (
                     <div
                       key={s.id}
-                      onClick={() => {
-                        toggleSelectSubject(s.id, true);
-                      }}
+                      onClick={() => toggleSelectSubject(s.id, true)}
                       className={`rounded-xl border p-3.5 transition cursor-pointer ${
                         isLight
                           ? "border-slate-200 bg-slate-50 hover:border-orange-400"
@@ -769,50 +769,18 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-
-              {/* Distribución Horaria por Campo Formativo */}
-              <div
-                className={`rounded-2xl border p-5 ${
-                  isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/80"
-                }`}
-              >
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-cyan-400">
-                  Distribución de Carga Horaria por Campo Formativo (2912 Hs. Cátedra)
-                </h3>
-                <div className="mt-4 space-y-4">
-                  {camposFormativos.map((item) => (
-                    <div key={item.cf} className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold">
-                        <span>
-                          {item.cf} ({item.count} materias)
-                        </span>
-                        <span className="font-mono text-cyan-400">
-                          {item.totalHs} hs ({item.pct}%)
-                        </span>
-                      </div>
-                      <div className="h-3 w-full overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
-                          style={{ width: `${item.pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
         </section>
 
-        {/* Inspe         ctor Lateral Interactivo */}
         <SubjectInspector
-           selectedSubject={activeSubject}
-           onSelectSubject={(id) => toggleSelectSubject(id, true)}
-           onClose={() => setSelectedId(null)}
-           studentProgress={studentProgress}
-           onStatusChange={handleStatusChange}
-           theme={theme}
-          />          
+          selectedSubject={activeSubject}
+          onSelectSubject={(id) => toggleSelectSubject(id, true)}
+          onClose={() => setSelectedId(null)}
+          studentProgress={studentProgress}
+          onStatusChange={handleStatusChange}
+          theme={theme}
+        />
       </main>
     </div>
   );
