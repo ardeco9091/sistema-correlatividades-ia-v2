@@ -34,15 +34,19 @@ export function doesSubjectUnlock(sourceSubject, futureSubject) {
   );
 }
 
-export function getSubjectRelation(selectedSubject, currentSubject) {
-  if (!selectedSubject) return { type: "none", reqApr: false, reqReg: false, unlocks: false };
-  if (selectedSubject.id === currentSubject.id) {
+export function getUnlockedCount(subject) {
+  return subjectsData.filter((s) => s.id !== subject.id && doesSubjectUnlock(subject, s)).length;
+}
+
+export function getSubjectRelation(activeSubject, currentSubject) {
+  if (!activeSubject) return { type: "none", reqApr: false, reqReg: false, unlocks: false };
+  if (activeSubject.id === currentSubject.id) {
     return { type: "selected", reqApr: false, reqReg: false, unlocks: false };
   }
 
-  const reqApr = isRequiredAsAprobada(selectedSubject, currentSubject.id);
-  const reqReg = isRequiredAsRegular(selectedSubject, currentSubject.id);
-  const unlocks = doesSubjectUnlock(selectedSubject, currentSubject);
+  const reqApr = isRequiredAsAprobada(activeSubject, currentSubject.id);
+  const reqReg = isRequiredAsRegular(activeSubject, currentSubject.id);
+  const unlocks = doesSubjectUnlock(activeSubject, currentSubject);
 
   let primaryType = "none";
   if (reqApr) primaryType = "req-aprobada";
@@ -69,7 +73,22 @@ export function evaluateStudentAvailability(subject, studentProgress) {
   return { canTake: regOk, canPass: regOk && aprOk };
 }
 
-export function getCfBadgeStyle(cf) {
+export function getCfBadgeStyle(cf, isLight = false) {
+  if (isLight) {
+    switch (cf) {
+      case "General":
+        return "bg-purple-100 text-purple-800 border-purple-300";
+      case "Fundamento":
+        return "bg-sky-100 text-sky-800 border-sky-300";
+      case "Específica":
+        return "bg-emerald-100 text-emerald-800 border-emerald-300";
+      case "Práctica Profesionalizante":
+        return "bg-orange-100 text-orange-800 border-orange-300";
+      default:
+        return "bg-slate-100 text-slate-700 border-slate-300";
+    }
+  }
+
   switch (cf) {
     case "General":
       return "bg-purple-500/15 text-purple-300 border-purple-500/30";
