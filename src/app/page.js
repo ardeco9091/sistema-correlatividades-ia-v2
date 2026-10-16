@@ -146,7 +146,14 @@ export default function HomePage() {
         isLight ? "bg-slate-100 text-slate-900" : "bg-[#070b14] text-slate-100"
       }`}
     >
-      <Header resetProgress="{handleResetProgress}" setSimulatorMode="{setSimulatorMode}" simulatorMode="{simulatorMode}" studentProgress="{studentProgress}" theme="{theme}" toggleTheme="{toggleTheme}"/>
+      <Header
+        resetProgress={handleResetProgress}
+        setSimulatorMode={setSimulatorMode}
+        simulatorMode={simulatorMode}
+        studentProgress={studentProgress}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
 
       {/* Barra Sticky de Referencias y Selector de las 3 Vistas */}
       <div
@@ -797,13 +804,15 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Inspector Lateral Interactivo */}
-        <SubjectInspector onSelectSubject="{(id)" selectedSubject="{activeSubject}"> toggleSelectSubject(id, true)}
-          onClose={() => setSelectedId(null)}
-          studentProgress={studentProgress}
-          onStatusChange={handleStatusChange}
-          theme={theme}
-        />
+        {/* Inspe         ctor Lateral Interactivo */}
+        <SubjectInspector
+           selectedSubject={activeSubject}
+           onSelectSubject={(id) => toggleSelectSubject(id, true)}
+           onClose={() => setSelectedId(null)}
+           studentProgress={studentProgress}
+           onStatusChange={handleStatusChange}
+           theme={theme}
+          />          
       </main>
     </div>
   );
